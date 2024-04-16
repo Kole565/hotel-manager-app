@@ -10,7 +10,6 @@ class TestRentModel(unittest.TestCase):
     def get_test_object(self):
         return RentModel(
             rooms_ids=None,
-            clients_ids=None,
             transaction_id=None,
             since=datetime.date(2020, 5, 10),
             due=datetime.date(2020, 5, 20),
@@ -20,7 +19,6 @@ class TestRentModel(unittest.TestCase):
         rent = self.get_test_object()
 
         self.assertEqual(rent._rooms_ids, None)
-        self.assertEqual(rent._clients_ids, None)
         self.assertEqual(rent._transaction_id, None)
         self.assertEqual(rent._since, datetime.date(2020, 5, 10))
         self.assertEqual(rent._due, datetime.date(2020, 5, 20))
@@ -31,13 +29,11 @@ class TestRentModel(unittest.TestCase):
         rent = self.get_test_object()
 
         rent.rooms_ids = [0]
-        rent.clients_ids = [0]
         rent.transaction_id = 0
         rent.since = datetime.date(2020, 3, 10)
         rent.due = datetime.date(2020, 3, 20)
 
         self.assertEqual(rent.rooms_ids, [0])
-        self.assertEqual(rent.clients_ids, [0])
         self.assertEqual(rent.transaction_id, 0)
         self.assertEqual(rent.since, datetime.date(2020, 3, 10))
         self.assertEqual(rent.due, datetime.date(2020, 3, 20))
@@ -49,10 +45,9 @@ class TestRentModel(unittest.TestCase):
 
         rent.save(db)
 
-        loaded_rent = RentModel.from_table(*self.rents_list(db)[-1], transaction_id=None)
+        loaded_rent = RentModel.from_table(*self.rents_list(db)[-1])
 
         self.assertEqual(rent.rooms_ids, loaded_rent.rooms_ids)
-        self.assertEqual(rent.clients_ids, loaded_rent.clients_ids)
         self.assertEqual(rent.transaction_id, loaded_rent.transaction_id)
         self.assertEqual(rent.since, loaded_rent.since)
         self.assertEqual(rent.due, loaded_rent.due)

@@ -2,9 +2,8 @@ class RentModel:
 
     TABLE_NAME = "rents"
 
-    def __init__(self, rooms_ids, clients_ids, transaction_id, since, due):
+    def __init__(self, rooms_ids, transaction_id, since, due):
         self._rooms_ids = rooms_ids
-        self._clients_ids = clients_ids
         self._transaction_id = transaction_id
 
         self._since = since
@@ -12,8 +11,8 @@ class RentModel:
         self._duration = self._due - self._since
 
     @staticmethod
-    def from_table(id, rooms_ids, clients_ids, since, due, transaction_id=0):
-        return RentModel(rooms_ids=rooms_ids, clients_ids=clients_ids, transaction_id=transaction_id, since=since, due=due)
+    def from_table(id, rooms_ids, transaction_id, since, due):
+        return RentModel(rooms_ids=rooms_ids, transaction_id=transaction_id, since=since, due=due)
 
     @property
     def rooms_ids(self):
@@ -22,14 +21,6 @@ class RentModel:
     @rooms_ids.setter
     def rooms_ids(self, value):
         self._rooms_ids = value
-
-    @property
-    def clients_ids(self):
-        return self._clients_ids
-
-    @clients_ids.setter
-    def clients_ids(self, value):
-        self._clients_ids = value
 
     @property
     def transaction_id(self):

@@ -14,6 +14,9 @@ class DB:
         self.connected = False
 
     def connect(self):
+        if self.connected:
+            return
+
         self._connection = psycopg2.connect(dbname=self.name, user=self.user)
         self._cursor = self._connection.cursor()
 
@@ -32,23 +35,27 @@ class DB:
 
         self.execute(query, item.record_attributes)
 
-    def upsert(self, table):
-        raise NotImplemented
-
     def commit(self):
         if not self.connected:
             return
 
         self._connection.commit()
 
-    def delete(self, index, table_name):
-        raise NotImplemented
-
     def execute(self, query, *args, **kwargs):
         if not self.connected:
             raise NotConnectedException
 
         self._cursor.execute(query, *args, **kwargs)
+
+    def execute_full(self, query, *args, **kwargs):
+        self.connect()
+
+        self.execute(query, *args, **kwargs)
+        result = self.fetch()
+
+        self.disconnect()
+
+        return result
 
     def fetch(self):
         return self._cursor.fetchall()

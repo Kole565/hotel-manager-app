@@ -3,7 +3,7 @@ from bin.gui.search_widget import SearchWidget
 from bin.gui.entry_edit_widget import EntryEditWidget
 from bin.gui.page_counter_widget import PageCounterWidget
 from bin.gui.adding_dialog import AddingDialog
-from bin.gui.rent_controller import RentController
+from bin.gui.rent_adding_dialog import RentAdding
 
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (QMainWindow, QWidget, QMessageBox,
@@ -120,7 +120,7 @@ class TablesWindow(QMainWindow):
         if self.headers[0][0] == "id":
             size = len(self.headers) - 1, 1
             if self.active_table == "rents":
-                dialog = RentController(self.db)
+                dialog = RentAdding(self.db)
             else:
                 dialog = AddingDialog(size, self.headers[1:], collected_data)
         else:

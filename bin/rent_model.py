@@ -14,6 +14,22 @@ class RentModel:
     def from_table(id, rooms_ids, transaction_id, since, due):
         return RentModel(rooms_ids=rooms_ids, transaction_id=transaction_id, since=since, due=due)
 
+    def save(self, db):
+        db.connect()
+
+        db.execute(self._get_save_query(), self._get_save_arguments())
+        db.commit()
+
+        db.disconnect()
+
+    def _get_save_query(self):
+        query = "INSERT INTO {} (room_id, transaction_id, since, due) VALUES (%s, %s, %s, %s)".format(self.TABLE_NAME)
+
+        return query
+
+    def _get_save_arguments(self):
+        return self._rooms_ids, self._transaction_id, self._since, self._due
+
     @property
     def rooms_ids(self):
         return self._rooms_ids
@@ -49,19 +65,3 @@ class RentModel:
     @property
     def duration(self):
         return self._duration
-
-    def save(self, db):
-        db.connect()
-
-        db.execute(self._get_save_query(), self._get_save_arguments())
-        db.commit()
-
-        db.disconnect()
-
-    def _get_save_query(self):
-        query = "INSERT INTO {} (room_id, transaction_id, since, due) VALUES (%s, %s, %s, %s)".format(self.TABLE_NAME)
-
-        return query
-
-    def _get_save_arguments(self):
-        return self._rooms_ids, self._transaction_id, self._since, self._due

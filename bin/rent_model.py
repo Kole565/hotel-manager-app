@@ -2,8 +2,8 @@ class RentModel:
 
     TABLE_NAME = "rents"
 
-    def __init__(self, rooms_ids, transaction_id, since, due):
-        self._rooms_ids = rooms_ids
+    def __init__(self, room_id, transaction_id, since, due):
+        self._room_id = room_id
         self._transaction_id = transaction_id
 
         self._since = since
@@ -11,32 +11,33 @@ class RentModel:
         self._duration = self._due - self._since
 
     @staticmethod
-    def from_table(id, rooms_ids, transaction_id, since, due):
-        return RentModel(rooms_ids=rooms_ids, transaction_id=transaction_id, since=since, due=due)
+    def from_table(id, room_id, transaction_id, since, due):
+        return RentModel(room_id=room_id, transaction_id=transaction_id, since=since, due=due)
 
     def save(self, db):
         db.connect()
 
-        db.execute(self._get_save_query(), self._get_save_arguments())
+        db.execute(self._get_save_query(), args=self._get_save_arguments())
         db.commit()
 
         db.disconnect()
 
     def _get_save_query(self):
-        query = "INSERT INTO {} (room_id, transaction_id, since, due) VALUES (%s, %s, %s, %s)".format(self.TABLE_NAME)
+        query = "INSERT INTO {} (room_id, transaction_id, since, due) VALUES (%s, %s, %s, %s);".format(self.TABLE_NAME)
 
         return query
 
     def _get_save_arguments(self):
-        return self._rooms_ids, self._transaction_id, self._since, self._due
+        print([self._room_id, self._transaction_id, self._since, self._due])
+        return [self._room_id, self._transaction_id, self._since, self._due]
 
     @property
-    def rooms_ids(self):
-        return self._rooms_ids
+    def room_id(self):
+        return self._room_id
 
-    @rooms_ids.setter
-    def rooms_ids(self, value):
-        self._rooms_ids = value
+    @room_id.setter
+    def room_id(self, value):
+        self._room_id = value
 
     @property
     def transaction_id(self):

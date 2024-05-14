@@ -1,6 +1,6 @@
 import unittest
 
-from db import DB
+from db import DBManager
 
 
 class DBItem:
@@ -16,22 +16,20 @@ class DBItem:
         return [self.data]
 
 
-class TestDB(unittest.TestCase):
-
-    # TODO: Change name to DBManager or DBHelper as more suitable
+class TestDBManager(unittest.TestCase):
 
     DB_NAME = "test_db"
     TABLE_NAME = "test_table"
     USER = "test"
 
     def test_init(self):
-        db = DB(db_name=self.DB_NAME, user=self.USER)
+        db = DBManager(db_name=self.DB_NAME, user=self.USER)
 
         self.assertEqual(db.name, self.DB_NAME)
         self.assertEqual(db.user, self.USER)
 
     def test_create_table(self):
-        db = DB(db_name=self.DB_NAME, user=self.USER)
+        db = DBManager(db_name=self.DB_NAME, user=self.USER)
         db.connect()
 
         db.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'not_exist_table')")
@@ -49,7 +47,7 @@ class TestDB(unittest.TestCase):
         self.assertTrue(is_table_exist_after)
 
     def test_session(self):
-        db = DB(db_name=self.DB_NAME, user=self.USER)
+        db = DBManager(db_name=self.DB_NAME, user=self.USER)
 
         db.connect()
 
@@ -62,7 +60,7 @@ class TestDB(unittest.TestCase):
         self.assertTrue(db._cursor.closed)
 
     def test_insert(self):
-        db = DB(db_name=self.DB_NAME, user=self.USER)
+        db = DBManager(db_name=self.DB_NAME, user=self.USER)
 
         db.connect()
 

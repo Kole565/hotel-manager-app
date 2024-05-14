@@ -7,6 +7,7 @@ from datetime import datetime
 
 
 class RentController(Controller):
+    """Used with tables viewer. Provide form and get input for rent part of rent model init."""
 
     def __init__(self, db):
         super().__init__()
@@ -24,8 +25,8 @@ class RentController(Controller):
     def _init_gui(self):
         since_label = QLabel("Since:")
         due_label = QLabel("Due:")
-        since_entry = QLineEdit()
-        due_entry = QLineEdit()
+        since_entry = QLineEdit("2000-01-01")
+        due_entry = QLineEdit("2000-01-02")
 
         self.gui["since_entry"] = since_entry
         self.gui["due_entry"] = due_entry
@@ -41,17 +42,29 @@ class RentController(Controller):
             due = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
 
             difference = due - since
-        except Exception as e:
-            raise e
+        except Exception:
+            return False
+        else:
+            return True
 
-        print(difference.date)
+    def create(self, *args, **kwargs):
+        room_id = int(kwargs["room_id"])
+        client_id = kwargs["client_id"]
+        since = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
+        due = datetime.strptime(self.gui["due_entry"].text(), "%Y-%m-%d")
 
-    def _create(self):
-        rooms_ids = self._fetch_rooms_ids()
-        clients_ids = self.clients_ids
-        since = self.gui["rent"]["since_entry"].text()
-        due = self.gui["rent"]["due_entry"].text()
-
-        model = RentModel(rooms_ids, clients_ids, since, due)
+        model = RentModel(room_id, 0, since, due)
 
         model.save(self.db)
+
+    def get_errors(self):
+        errors = []
+
+        if not self.gui["since_entry"].text():
+            errors.append("Rent since is empty")
+        if not self.gui["due_entry"].text():
+            errors.append("Rent due is empty")
+        if not self.data_check():
+            errors.append("Rent dates is wrong format (should be 2000-01-01)")
+
+        return errors

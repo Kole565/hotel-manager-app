@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout
 
 
 class EntryEditWidget(QWidget):
+    """Provide table item manipulation gui like add, del, edit"""
 
     def __init__(self, add_func, remove_func=None, edit_func=None, save_func=None):
         super().__init__()

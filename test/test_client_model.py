@@ -2,7 +2,7 @@ import unittest
 import datetime
 
 from bin.client_model import ClientModel
-from bin.db import DB
+from bin.db import DBManager
 
 
 class TestClientModel(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestClientModel(unittest.TestCase):
         self.assertEqual(test_object.credentials, "123456789101")
 
     def test_save_load(self):
-        db = DB("test_db", "test")
+        db = DBManager("test_db", "test")
 
         test_object = self.get_test_object()
 

@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QDialogBu
 
 
 class AddingDialog(QDialog):
+    """Dialog that collect new table item data from user"""
 
     def __init__(self, size, headers, collected_data):
         super().__init__()

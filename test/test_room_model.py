@@ -1,7 +1,7 @@
 import unittest
 
 from bin.room_model import RoomModel
-from bin.db import DB
+from bin.db import DBManager
 
 
 class TestRoomModel(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestRoomModel(unittest.TestCase):
         self.assertEqual(test_object.capacity, 3)
 
     def test_save_load(self):
-        db = DB("test_db", "test")
+        db = DBManager("test_db", "test")
 
         test_object = self.get_test_object()
 

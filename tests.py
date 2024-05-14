@@ -5,5 +5,4 @@ from test.test_client_model import TestClientModel
 from test.test_room_model import TestRoomModel
 from test.test_transaction_model import TestTransactionModel
 
-
 unittest.main()

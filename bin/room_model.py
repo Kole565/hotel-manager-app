@@ -19,12 +19,12 @@ class RoomModel:
         db.disconnect()
 
     def _get_save_query(self):
-        query = "INSERT INTO {} (price, capacity) VALUES (%s, %s)".format(self.TABLE_NAME)
+        query = "INSERT INTO {} (price, capacity) VALUES (%s, %s);".format(self.TABLE_NAME)
 
         return query
 
     def _get_save_arguments(self):
-        return self._price, self._capacity
+        return [self._price, self._capacity]
 
     @property
     def price(self):

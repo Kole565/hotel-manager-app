@@ -1,7 +1,7 @@
 import unittest
 
 from bin.transaction_model import TransactionModel
-from bin.db import DB
+from bin.db import DBManager
 
 
 class TestTransactionModel(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestTransactionModel(unittest.TestCase):
         self.assertEqual(test_object.completed, False)
 
     def test_save_load(self):
-        db = DB("test_db", "test")
+        db = DBManager("test_db", "test")
 
         test_object = self.get_test_object()
 

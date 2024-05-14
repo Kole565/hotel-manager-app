@@ -1,4 +1,4 @@
-from bin.db import DB
+from bin.db import DBManager
 from bin.gui.search_widget import SearchWidget
 from bin.gui.entry_edit_widget import EntryEditWidget
 from bin.gui.page_counter_widget import PageCounterWidget
@@ -13,26 +13,25 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QMessageBox,
 from PySide6.QtGui import QAction
 
 
-
-class TablesWindow(QMainWindow):
+class TablesViewer(QMainWindow):
+    """GUI allowing to view and edit tables data"""
 
     DB_NAME = "test_db"
     USER = "test"
 
-    TABLE_INITIALIZING_SALES_APPLYING = "rents"
-    TABLE_WITH_TRANSACTIONS = "transactions"
+    MAX_ROWS = 20
 
     def __init__(self):
         super().__init__()
 
         self.setFixedSize(QSize(800, 450))
 
-        self.db = DB(self.DB_NAME, self.USER)
+        self.db = DBManager(self.DB_NAME, self.USER)
 
         self.search_panel = SearchWidget(self.fetch)
         self.table_widget = QTableWidget()
         self.entry_edit_widget = EntryEditWidget(self.add, self.remove, self.edit)
-        self.page_counter = PageCounterWidget()
+        self.page_counter = PageCounterWidget(self._increment_page)
 
         toolbar = QToolBar("Tables Toolbar")
         self.addToolBar(toolbar)
@@ -47,6 +46,9 @@ class TablesWindow(QMainWindow):
             QAction("Clients/Rents"),
             QAction("Sales"),
         ]
+        # for action, name in zip(self.tables_switching_actions, names):
+        #     action.triggered.connect(lambda: self.fetch(name))
+
         self.tables_switching_actions[0].triggered.connect(lambda: self.fetch(names[0]))
         toolbar.addAction(self.tables_switching_actions[0])
         self.tables_switching_actions[1].triggered.connect(lambda: self.fetch(names[1]))
@@ -74,13 +76,14 @@ class TablesWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
-    def fetch(self, table_name):
-        self.db.connect()
-        self.headers = self._get_headers(table_name)
-        data = self._get_data(table_name)
-        self.db.disconnect()
+        self.current_page = 1
 
-        self._show_data(data)
+    def fetch(self, table_name):
+        self.headers = self._get_headers(table_name)
+
+        self._show_data(table_name)
+        self._set_headers()
+        self._update_pages()
 
         self.active_table = table_name
 
@@ -88,23 +91,31 @@ class TablesWindow(QMainWindow):
         self.fetch(self.active_table)
 
     def _get_data(self, table_name):
-        self.db.execute("SELECT * FROM {}".format(table_name))
-        data = self.db.fetch()
+        query = "SELECT * FROM {}".format(table_name)
 
-        return data
+        return self.db.execute_and_return(query)
 
     def _get_headers(self, table_name):
-        self.db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = '{}'".format(table_name))
-        headers = self.db.fetch()
+        query = "SELECT column_name FROM information_schema.columns WHERE table_name = '{}'".format(table_name)
 
-        return headers
+        return self.db.execute_and_return(query)
 
-    def _show_data(self, data):
-        self.table_widget.setRowCount(len(data))
-        if data:
-            self.table_widget.setColumnCount(len(data[0]))
+    def _show_data(self, table_name):
+        data = self._get_data(table_name)
+        if not data:
+            return
+
+        self.pages = len(data) // self.MAX_ROWS + 1
+
+        if len(data) >= self.MAX_ROWS:
+            self.table_widget.setRowCount(self.MAX_ROWS)
         else:
-            self.table_widget.setColumnCount(0)
+            self.table_widget.setRowCount(len(data))
+
+        self.table_widget.setColumnCount(len(data[0]))
+
+        if len(data) > self.MAX_ROWS:
+            data = data[self.MAX_ROWS * (self.current_page - 1):self.MAX_ROWS * (self.current_page)]
 
         for x in range(len(data)):
             for y in range(len(data[0])):
@@ -112,6 +123,24 @@ class TablesWindow(QMainWindow):
                 self.table_widget.setItem(x, y, new_item)
 
         self.table_widget.sortItems(0)
+
+    def _update_pages(self):
+        self.page_counter.current.setText(str(self.current_page))
+        self.page_counter.max.setText(str(self.pages))
+
+    def _increment_page(self, increment=1):
+        self.current_page += increment
+
+        if self.current_page > self.pages:
+            self.current_page = self.pages
+        elif self.current_page < 1:
+            self.current_page = 1
+        else:
+            self.fetch(self.active_table)
+            self._update_pages()
+
+    def _set_headers(self):
+        self.table_widget.setHorizontalHeaderLabels([header[0] for header in self.headers])
 
     def add(self):
         self.db.connect()
@@ -130,19 +159,8 @@ class TablesWindow(QMainWindow):
         if not dialog.exec():
             return
 
-        if self.active_table == self.TABLE_INITIALIZING_SALES_APPLYING:
-            room_cost_query = "SELECT price FROM rooms WHERE id = %s;"
-
-            self.db.execute(room_cost_query, collected_data[0])
-            room_cost = self.db.fetch()
-
-            transaction_id = collected_data[1]
-            transaction_value = room_cost[0]
-
-            self._get_or_create_transaction(transaction_id, transaction_value)
-            self.apply_sales(transaction_id)
-
-        self._add_item(self.active_table, collected_data, self.headers[1:])
+        if self.active_table != "rents":
+            self._add_item(self.active_table, collected_data, self.headers[1:])
         self.refresh()
 
         self.db.disconnect()

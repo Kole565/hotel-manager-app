@@ -1,4 +1,4 @@
-from bin.db import DB
+from bin.db import DBManager
 
 import random
 from psycopg2.errors import DuplicateTable
@@ -15,7 +15,7 @@ TABLES = {
 }
 USER = "test"
 
-db = DB(db_name=DB_NAME, user=USER)
+db = DBManager(db_name=DB_NAME, user=USER)
 db.connect()
 
 def init_tables():

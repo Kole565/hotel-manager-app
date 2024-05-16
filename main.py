@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import QApplication
 
-from bin.gui.main_menu import MainMenu
+from bin.gui.tables_viewer import TablesViewer
 
 
 app = QApplication([])
 
-window = MainMenu()
+window = TablesViewer()
 window.show()
 
 app.exec()

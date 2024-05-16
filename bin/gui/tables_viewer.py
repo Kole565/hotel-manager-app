@@ -1,16 +1,22 @@
 from bin.db import DBManager
-from bin.gui.search_widget import SearchWidget
 from bin.gui.entry_edit_widget import EntryEditWidget
 from bin.gui.page_counter_widget import PageCounterWidget
 from bin.gui.adding_dialog import AddingDialog
 from bin.gui.rent_adding_dialog import RentAdding
 
 from PySide6.QtCore import QSize
-from PySide6.QtWidgets import (QMainWindow, QWidget, QMessageBox,
-    QVBoxLayout, QHBoxLayout, QTableWidget, QGridLayout,
-    QTableWidgetItem, QDialog, QDialogButtonBox, QToolBar)
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QMessageBox,
+    QVBoxLayout, QHBoxLayout, QTableWidget,
+    QTableWidgetItem, QToolBar, QFileDialog
+)
 
 from PySide6.QtGui import QAction
+
+import os
+from functools import partial
+
+from tabulate import tabulate
 
 
 class TablesViewer(QMainWindow):
@@ -19,7 +25,10 @@ class TablesViewer(QMainWindow):
     DB_NAME = "test_db"
     USER = "test"
 
-    MAX_ROWS = 20
+    MAX_ROWS = 5
+    TABLES = [
+        "rooms", "clients", "rents", "transactions", "clients_rents", "sales"
+    ]
 
     def __init__(self):
         super().__init__()
@@ -28,15 +37,14 @@ class TablesViewer(QMainWindow):
 
         self.db = DBManager(self.DB_NAME, self.USER)
 
-        self.search_panel = SearchWidget(self.fetch)
         self.table_widget = QTableWidget()
-        self.entry_edit_widget = EntryEditWidget(self.add, self.remove, self.edit)
-        self.page_counter = PageCounterWidget(self._increment_page)
+        self.entry_edit_widget = EntryEditWidget(
+            self.add, self.remove, self.edit, self.save_active_table, self.save_all_tables
+        )
+        self.page_counter = PageCounterWidget(self.refresh)
 
         toolbar = QToolBar("Tables Toolbar")
         self.addToolBar(toolbar)
-
-        names = ["rooms", "clients", "rents", "transactions", "clients_rents", "sales"]
 
         self.tables_switching_actions = [
             QAction("Rooms"),
@@ -46,26 +54,13 @@ class TablesViewer(QMainWindow):
             QAction("Clients/Rents"),
             QAction("Sales"),
         ]
-        # for action, name in zip(self.tables_switching_actions, names):
-        #     action.triggered.connect(lambda: self.fetch(name))
-
-        self.tables_switching_actions[0].triggered.connect(lambda: self.fetch(names[0]))
-        toolbar.addAction(self.tables_switching_actions[0])
-        self.tables_switching_actions[1].triggered.connect(lambda: self.fetch(names[1]))
-        toolbar.addAction(self.tables_switching_actions[1])
-        self.tables_switching_actions[2].triggered.connect(lambda: self.fetch(names[2]))
-        toolbar.addAction(self.tables_switching_actions[2])
-        self.tables_switching_actions[3].triggered.connect(lambda: self.fetch(names[3]))
-        toolbar.addAction(self.tables_switching_actions[3])
-        self.tables_switching_actions[4].triggered.connect(lambda: self.fetch(names[4]))
-        toolbar.addAction(self.tables_switching_actions[4])
-        self.tables_switching_actions[5].triggered.connect(lambda: self.fetch(names[5]))
-        toolbar.addAction(self.tables_switching_actions[5])
+        for action, table in zip(self.tables_switching_actions, self.TABLES):
+            action.triggered.connect(partial(self.show_table, table))
+            toolbar.addAction(action)
 
         layout = QVBoxLayout()
         layout_for_table = QHBoxLayout()
 
-        layout.addWidget(self.search_panel)
         layout_for_table.addWidget(self.table_widget)
         layout_for_table.addWidget(self.entry_edit_widget)
         layout.addLayout(layout_for_table)
@@ -77,70 +72,72 @@ class TablesViewer(QMainWindow):
         self.setCentralWidget(container)
 
         self.current_page = 1
-
-    def fetch(self, table_name):
-        self.headers = self._get_headers(table_name)
-
-        self._show_data(table_name)
-        self._set_headers()
-        self._update_pages()
-
-        self.active_table = table_name
+        self.active_table = self.TABLES[0]
 
     def refresh(self):
-        self.fetch(self.active_table)
+        self.show_table(self.active_table)
 
-    def _get_data(self, table_name):
-        query = "SELECT * FROM {}".format(table_name)
+    def show_table(self, table_name):
+        headers = self._get_headers(table_name)
+        data = self._get_data(table_name)
 
-        return self.db.execute_and_return(query)
+        self._init_pages(len(data))
+        self._show_data(data)
+        self.page_counter.update()
+        self._set_headers(headers)
+
+        self.active_table = table_name
 
     def _get_headers(self, table_name):
         query = "SELECT column_name FROM information_schema.columns WHERE table_name = '{}'".format(table_name)
 
         return self.db.execute_and_return(query)
 
-    def _show_data(self, table_name):
-        data = self._get_data(table_name)
+    def _get_data(self, table_name):
+        query = "SELECT * FROM {}".format(table_name)
+
+        return self.db.execute_and_return(query)
+
+    def _init_pages(self, records):
+        if records <= self.MAX_ROWS:
+            total_pages = 1
+        else:
+            total_pages = records // self.MAX_ROWS
+            if records % self.MAX_ROWS:
+                total_pages += 1
+
+        if self.page_counter.total_pages != total_pages:
+            self.page_counter.init_pages(total_pages)
+
+    def _show_data(self, data):
         if not data:
+            QMessageBox.information(self, "Empty Table", "This table is empty")
             return
 
-        self.pages = len(data) // self.MAX_ROWS + 1
+        records_remainder = len(data) % self.MAX_ROWS
 
-        if len(data) >= self.MAX_ROWS:
-            self.table_widget.setRowCount(self.MAX_ROWS)
+        if self.page_counter.current_page == self.page_counter.total_pages and records_remainder:
+            rows = records_remainder
         else:
-            self.table_widget.setRowCount(len(data))
+            rows = self.MAX_ROWS
 
+        self.table_widget.setRowCount(rows)
         self.table_widget.setColumnCount(len(data[0]))
 
+        start = self.MAX_ROWS * (self.page_counter.current_page - 1)
+        end = self.MAX_ROWS * (self.page_counter.current_page)
+
         if len(data) > self.MAX_ROWS:
-            data = data[self.MAX_ROWS * (self.current_page - 1):self.MAX_ROWS * (self.current_page)]
+            data = data[start:end]
 
         for x in range(len(data)):
             for y in range(len(data[0])):
-                new_item = QTableWidgetItem(str(data[x][y]))
-                self.table_widget.setItem(x, y, new_item)
+                item = QTableWidgetItem(str(data[x][y]))
+                self.table_widget.setItem(x, y, item)
 
-        self.table_widget.sortItems(0)
-
-    def _update_pages(self):
-        self.page_counter.current.setText(str(self.current_page))
-        self.page_counter.max.setText(str(self.pages))
-
-    def _increment_page(self, increment=1):
-        self.current_page += increment
-
-        if self.current_page > self.pages:
-            self.current_page = self.pages
-        elif self.current_page < 1:
-            self.current_page = 1
-        else:
-            self.fetch(self.active_table)
-            self._update_pages()
-
-    def _set_headers(self):
-        self.table_widget.setHorizontalHeaderLabels([header[0] for header in self.headers])
+    def _set_headers(self, headers):
+        self.headers = headers
+        self.table_widget.setHorizontalHeaderLabels([header[0] for header in headers])
 
     def add(self):
         self.db.connect()
@@ -164,28 +161,6 @@ class TablesViewer(QMainWindow):
         self.refresh()
 
         self.db.disconnect()
-
-    def _get_or_create_transaction(self, transaction_id, transaction_value):
-        is_transaction_exist_query = "SELECT 1 FROM {} WHERE id = %s;".format(self.TABLE_WITH_TRANSACTIONS)
-        self.db.execute(is_transaction_exist_query, transaction_id)
-        result = self.db.fetch()
-
-        print("Result from checking is transaction exist: {}".format(result))
-
-        if result:
-            return result
-
-        self._create_transaction(transaction_id, transaction_value)
-
-    def _create_transaction(self, transaction_id, transaction_value):
-        create_query = "INSERT INTO {} (id, sum) VALUES (%s, %s);".format(self.TABLE_WITH_TRANSACTIONS)
-        self.db.execute(create_query, (transaction_id, transaction_value))
-        self.db.commit()
-
-    def apply_sales(self, transaction_id):
-        apply_query = "UPDATE {} SET sum = (SELECT sum FROM {} WHERE id = %s) * 0.1 WHERE id = %s".format(self.TABLE_WITH_TRANSACTIONS, self.TABLE_WITH_TRANSACTIONS)
-        self.db.execute(apply_query, (transaction_id, transaction_id))
-        self.db.commit()
 
     def _add_item(self, table_name, data, headers):
         # First column with id will be ignored
@@ -255,3 +230,36 @@ class TablesViewer(QMainWindow):
         self.db.execute("DELETE FROM {} WHERE id = {}".format(table_name, item_id))
         self.db.commit()
         self.db.disconnect()
+
+    def save_active_table(self):
+        dialog = QFileDialog()
+        file_name, status = dialog.getSaveFileName(self, "Save File", ".", "*.txt")
+
+        try:
+            self._save_table(file_name, self.active_table)
+        except Exception:
+            pass
+        else:
+            QMessageBox.information(self, "Succes", "Table succesfully saved")
+
+    def save_all_tables(self):
+        dialog = QFileDialog()
+        folder_name, status = dialog.getSaveFileName(self, "Save Folder", ".", "")
+
+        try:
+            os.mkdir(folder_name)
+            for table in self.TABLES:
+                self._save_table(os.path.join(folder_name, table + ".txt"), table)
+        except Exception:
+            pass
+        else:
+            QMessageBox.information(self, "Succes", "Tables succesfully saved")
+
+    def _save_table(self, file_name, table_name):
+        headers = [header[0] for header in self._get_headers(table_name)]
+        data = self._get_data(table_name)
+
+        table = tabulate(data, headers=headers, tablefmt="github")
+
+        with open(file_name, "w") as file:
+            file.write(table)

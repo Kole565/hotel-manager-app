@@ -1,12 +1,11 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QDialogButtonBox
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
-from bin.gui.controller import Controller
 from bin.rent_model import RentModel
 
 from datetime import datetime
 
 
-class RentController(Controller):
+class RentController(QWidget):
     """Used with tables viewer. Provide form and get input for rent part of rent model init."""
 
     def __init__(self, db):
@@ -39,7 +38,7 @@ class RentController(Controller):
     def data_check(self):
         try:
             since = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
-            due = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
+            due = datetime.strptime(self.gui["due_entry"].text(), "%Y-%m-%d")
 
             difference = due - since
         except Exception:

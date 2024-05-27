@@ -1,10 +1,7 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit
-
-from bin.gui.controller import Controller
-from bin.client_model import ClientModel
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
 
-class ClientController(Controller):
+class ClientController(QWidget):
     """Used with Rent Adder. Provide form and get input for client part of rent model init."""
 
     def __init__(self, db):
@@ -37,7 +34,8 @@ class ClientController(Controller):
         return False
 
     def _exist_client_with(self, name):
-        query = "SELECT EXISTS (SELECT 1 FROM {} WHERE fio = %s);".format("clients")
+        query = "SELECT EXISTS (SELECT 1 FROM {} WHERE fio = %s);".format(
+            "clients")
 
         return self.db.execute_and_return(query, (name,))[0][0]
 

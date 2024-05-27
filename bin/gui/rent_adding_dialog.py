@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QDialogButtonBox, QMessageBox
+from PySide6.QtWidgets import QDialog, QGridLayout, QDialogButtonBox, QMessageBox
 
 from bin.gui.room_controller import RoomController
 from bin.gui.client_controller import ClientController
@@ -55,16 +55,15 @@ class RentAdding(QDialog):
         errors_lists = []
         for controller in self.controllers:
             if not controller.data_check():
-                # print(controller)
                 errors = "; ".join(controller.get_errors())
                 errors_lists.append(errors)
 
                 ret = False
 
         if errors_lists:
-            button = QMessageBox.information(
+            QMessageBox.information(
                 self,
-                "Empty field",
+                "Errors",
                 "You have encounter errors: {}".format("; ".join(errors_lists)),
                 buttons=QMessageBox.Ok
             )

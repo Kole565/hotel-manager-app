@@ -1,10 +1,7 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit
-
-from bin.gui.controller import Controller
-from bin.room_model import RoomModel
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
 
-class RoomController(Controller):
+class RoomController(QWidget):
     """Used with Rent Adder. Provide form and get input for room part of rent model init."""
 
     def __init__(self, db):

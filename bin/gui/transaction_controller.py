@@ -1,10 +1,7 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit
-
-from bin.gui.controller import Controller
-from bin.transaction_model import TransactionModel
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
 
-class TransactionController(Controller):
+class TransactionController(QWidget):
     """Used with Rent Adder. Provide form and get input for transaction part of rent model init."""
 
     def __init__(self, db):

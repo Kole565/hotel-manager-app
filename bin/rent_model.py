@@ -28,7 +28,6 @@ class RentModel:
         return query
 
     def _get_save_arguments(self):
-        print([self._room_id, self._transaction_id, self._since, self._due])
         return [self._room_id, self._transaction_id, self._since, self._due]
 
     @property

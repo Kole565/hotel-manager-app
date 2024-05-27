@@ -1,5 +1,4 @@
 import unittest
-import datetime
 
 from bin.client_model import ClientModel
 from bin.db import DBManager

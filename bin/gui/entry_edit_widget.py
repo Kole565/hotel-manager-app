@@ -1,10 +1,14 @@
+"""Provide GUI class for containing buttons for entry editing."""
 from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout
 
 
 class EntryEditWidget(QWidget):
-    """Provide table item manipulation gui like add, del, edit"""
+    """Provide table item manipulation gui like add, del, edit buttons."""
 
-    def __init__(self, add_func, remove_func=None, edit_func=None, save_func=None, backup_func=None):
+    def __init__(
+        self, add_func, remove_func, edit_func, save_func, backup_func
+    ):
+        """Initialize buttons."""
         super().__init__()
 
         layout = QVBoxLayout()

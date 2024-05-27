@@ -1,3 +1,4 @@
+"""Hotel app launching script."""
 from PySide6.QtWidgets import QApplication
 
 from bin.gui.tables_viewer import TablesViewer

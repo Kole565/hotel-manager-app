@@ -1,10 +1,12 @@
+"""Provide GUI class for data collecting widget."""
 from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
 
 class ClientController(QWidget):
-    """Used with Rent Adder. Provide form and get input for client part of rent model init."""
+    """Provide form and get input for model init."""
 
     def __init__(self, db):
+        """Initialize elements for data collecting."""
         super().__init__()
 
         self.db = db
@@ -27,6 +29,7 @@ class ClientController(QWidget):
         self.layout.addWidget(name_entry, 1, 0)
 
     def data_check(self):
+        """Return True if data is good enough for saving/creating."""
         name = self.gui["name_entry"].text()
 
         if self._exist_client_with(name):
@@ -40,6 +43,7 @@ class ClientController(QWidget):
         return self.db.execute_and_return(query, (name,))[0][0]
 
     def get_errors(self):
+        """Return formatted errors if any."""
         errors = []
 
         if not self.gui["name_entry"].text():

@@ -1,3 +1,4 @@
+"""Provide GUI class for data collecting widget."""
 from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit
 
 from bin.rent_model import RentModel
@@ -6,9 +7,10 @@ from datetime import datetime
 
 
 class RentController(QWidget):
-    """Used with tables viewer. Provide form and get input for rent part of rent model init."""
+    """Provide form and get input for model init."""
 
     def __init__(self, db):
+        """Initialize elements for data collecting."""
         super().__init__()
 
         self.db = db
@@ -36,27 +38,32 @@ class RentController(QWidget):
         self.layout.addWidget(due_entry, 1, 1)
 
     def data_check(self):
+        """Return True if data is good enough for saving/creating."""
         try:
-            since = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
-            due = datetime.strptime(self.gui["due_entry"].text(), "%Y-%m-%d")
+            since = datetime.strptime(
+                self.gui["since_entry"].text(), "%Y-%m-%d"
+            )
+            due = datetime.strptime(
+                self.gui["due_entry"].text(), "%Y-%m-%d"
+            )
 
-            difference = due - since
+            due - since  # For errors checking
         except Exception:
             return False
         else:
             return True
 
     def create(self, *args, **kwargs):
+        """Create rent object and save it in db."""
         room_id = int(kwargs["room_id"])
-        client_id = kwargs["client_id"]
         since = datetime.strptime(self.gui["since_entry"].text(), "%Y-%m-%d")
         due = datetime.strptime(self.gui["due_entry"].text(), "%Y-%m-%d")
 
         model = RentModel(room_id, 0, since, due)
-
         model.save(self.db)
 
     def get_errors(self):
+        """Return formatted errors if any."""
         errors = []
 
         if not self.gui["since_entry"].text():

@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QDialogButtonBox, QMessageBox
+"""Provide GUI class for collecting rent data and creating rent object."""
+from PySide6.QtWidgets import (
+    QDialog, QGridLayout, QDialogButtonBox, QMessageBox
+)
 
 from bin.gui.room_controller import RoomController
 from bin.gui.client_controller import ClientController
@@ -7,9 +10,10 @@ from bin.gui.transaction_controller import TransactionController
 
 
 class RentAdding(QDialog):
-    """Custom adding dialog for rent model"""
+    """Custom adding dialog for rent model."""
 
     def __init__(self, db):
+        """Initialize db and controllers."""
         super().__init__()
 
         self.db = db
@@ -25,7 +29,11 @@ class RentAdding(QDialog):
         self.setLayout(self.layout)
 
     def _init_widgets(self):
-        for i, Controller in enumerate([RoomController, ClientController, RentController, TransactionController]):
+        controllers_classes = [
+            RoomController, ClientController, RentController,
+            TransactionController
+        ]
+        for i, Controller in enumerate(controllers_classes):
             widget = Controller(self.db)
 
             self.controllers.append(widget)
@@ -36,12 +44,12 @@ class RentAdding(QDialog):
         QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         button_box = QDialogButtonBox(QBtn)
 
-        button_box.accepted.connect(self.accept)
+        button_box.accepted.connect(self._accept)
         button_box.rejected.connect(self.reject)
 
         self.layout.addWidget(button_box, 2, 3)
 
-    def accept(self):
+    def _accept(self):
         if not self.data_check():
             return
 
@@ -50,6 +58,7 @@ class RentAdding(QDialog):
         super().accept()
 
     def data_check(self):
+        """Return True if data is good enough for saving/creating."""
         ret = True
 
         errors_lists = []
@@ -60,22 +69,31 @@ class RentAdding(QDialog):
 
                 ret = False
 
+        message = "You have encounter errors: {}".format(
+            "; ".join(errors_lists)
+        )
         if errors_lists:
             QMessageBox.information(
                 self,
                 "Errors",
-                "You have encounter errors: {}".format("; ".join(errors_lists)),
+                message,
                 buttons=QMessageBox.Ok
             )
 
         return ret
 
     def create(self):
-        room_id = self.controllers[0].gui["id_entry"].text() # Room controller
-        client_name = self.controllers[1].gui["name_entry"].text() # Client controller
+        """Collect data and create rent object."""
+        # Room controller
+        room_id = self.controllers[0].gui["id_entry"].text()
+
+        # Client controller
+        client_name = self.controllers[1].gui["name_entry"].text()
+
         client_id = self._get_clients_ids(client_name.split())
 
-        self.controllers[2].create(room_id=room_id, client_id=client_id) # Rent controller
+        # Rent controller
+        self.controllers[2].create(room_id=room_id, client_id=client_id)
 
     def _get_clients_ids(self, clients_names):
         result = []

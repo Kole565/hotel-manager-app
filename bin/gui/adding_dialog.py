@@ -1,14 +1,20 @@
-from PySide6.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QDialogButtonBox
+"""Provide GUI class for item adding dialog."""
+from PySide6.QtWidgets import (
+    QDialog, QGridLayout, QLabel, QLineEdit, QDialogButtonBox
+)
 
 
 class AddingDialog(QDialog):
     """Gather entries data from user.
 
-    Dialog that collect new table item data from user
+    Dialog that collect new table item data from user.
     """
 
     def __init__(self, size, headers, collected_data):
-        """Initialising"""
+        """Initialize elements by size and headers.
+
+        Push gathered data to collected_data.
+        """
         super().__init__()
 
         self.size = size
@@ -35,12 +41,12 @@ class AddingDialog(QDialog):
         QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         self.button_box = QDialogButtonBox(QBtn)
 
-        self.button_box.accepted.connect(self.accept)
+        self.button_box.accepted.connect(self._accept)
         self.button_box.rejected.connect(self.reject)
 
         self.layout.addWidget(self.button_box, self.size[0], self.size[1])
 
-    def accept(self):
+    def _accept(self):
         for widget in self.entries:
             self.collected_data.append(widget.text())
 

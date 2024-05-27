@@ -1,7 +1,13 @@
+"""Provide GUI class for viewing data from db in tables."""
+import os
+from functools import partial
+
+from tabulate import tabulate
+
 from bin.db import DBManager
+from bin.gui.adding_dialog import AddingDialog
 from bin.gui.entry_edit_widget import EntryEditWidget
 from bin.gui.page_counter_widget import PageCounterWidget
-from bin.gui.adding_dialog import AddingDialog
 from bin.gui.rent_adding_dialog import RentAdding
 
 from PySide6.QtCore import QSize
@@ -10,17 +16,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QToolBar, QFileDialog
 )
-
 from PySide6.QtGui import QAction
-
-import os
-from functools import partial
-
-from tabulate import tabulate
 
 
 class TablesViewer(QMainWindow):
-    """GUI allowing to view and edit tables data"""
+    """GUI allowing to view and edit tables data."""
 
     DB_NAME = "test_db"
     USER = "test"
@@ -31,6 +31,7 @@ class TablesViewer(QMainWindow):
     ]
 
     def __init__(self):
+        """Initialize table controlls and table itself."""
         super().__init__()
 
         self.setFixedSize(QSize(800, 450))
@@ -39,9 +40,10 @@ class TablesViewer(QMainWindow):
 
         self.table_widget = QTableWidget()
         self.entry_edit_widget = EntryEditWidget(
-            self.add, self.remove, self.edit, self.save_active_table, self.save_all_tables
+            self.add, self.remove, self.edit, self.save_active_table,
+            self.save_all_tables
         )
-        self.page_counter = PageCounterWidget(self.refresh)
+        self.page_counter = PageCounterWidget(self._refresh)
 
         toolbar = QToolBar("Tables Toolbar")
         self.addToolBar(toolbar)
@@ -55,7 +57,7 @@ class TablesViewer(QMainWindow):
             QAction("Sales"),
         ]
         for action, table in zip(self.tables_switching_actions, self.TABLES):
-            action.triggered.connect(partial(self.show_table, table))
+            action.triggered.connect(partial(self._show_table, table))
             toolbar.addAction(action)
 
         layout = QVBoxLayout()
@@ -74,10 +76,10 @@ class TablesViewer(QMainWindow):
         self.current_page = 1
         self.active_table = self.TABLES[0]
 
-    def refresh(self):
-        self.show_table(self.active_table)
+    def _refresh(self):
+        self._show_table(self.active_table)
 
-    def show_table(self, table_name):
+    def _show_table(self, table_name):
         headers = self._get_headers(table_name)
         data = self._get_data(table_name)
 
@@ -89,7 +91,9 @@ class TablesViewer(QMainWindow):
         self.active_table = table_name
 
     def _get_headers(self, table_name):
-        query = "SELECT column_name FROM information_schema.columns WHERE table_name = '{}'".format(table_name)
+        query = "SELECT column_name \
+        FROM information_schema.columns \
+        WHERE table_name = '{}'".format(table_name)
 
         return self.db.execute_and_return(query)
 
@@ -116,7 +120,10 @@ class TablesViewer(QMainWindow):
 
         records_remainder = len(data) % self.MAX_ROWS
 
-        if self.page_counter.current_page == self.page_counter.total_pages and records_remainder:
+        if (
+            (self.page_counter.current_page == self.page_counter.total_pages)
+            and records_remainder
+        ):
             rows = records_remainder
         else:
             rows = self.MAX_ROWS
@@ -137,9 +144,12 @@ class TablesViewer(QMainWindow):
 
     def _set_headers(self, headers):
         self.headers = headers
-        self.table_widget.setHorizontalHeaderLabels([header[0] for header in headers])
+
+        headers_names = [header[0] for header in headers]
+        self.table_widget.setHorizontalHeaderLabels(headers_names)
 
     def add(self):
+        """Edit item to db via gui."""
         self.db.connect()
 
         collected_data = []
@@ -158,7 +168,7 @@ class TablesViewer(QMainWindow):
 
         if self.active_table != "rents":
             self._add_item(self.active_table, collected_data, self.headers[1:])
-        self.refresh()
+        self._refresh()
 
         self.db.disconnect()
 
@@ -168,17 +178,25 @@ class TablesViewer(QMainWindow):
         data_placeholders = ", ".join(["%s"] * len(data))
         headers = ", ".join(headers)
 
+        query = "INSERT INTO {} ({}) VALUES ({});".format(
+            table_name, headers, data_placeholders
+        )
+
         self.db.connect()
-        self.db.execute("INSERT INTO {} ({}) VALUES ({})".format(table_name, headers, data_placeholders), data)
+        self.db.execute(query, data)
         self.db.commit()
         self.db.disconnect()
 
     def edit(self):
+        """Edit item via gui."""
         selection_ids = self._get_selection_ids()
         if not selection_ids:
-            return # TODO: Add warning about empty selection
+            return
 
-        size = self.table_widget.columnCount() - 1, self.table_widget.rowCount() - 1
+        size = [
+            self.table_widget.columnCount() - 1,
+            self.table_widget.rowCount() - 1
+        ]
 
         values = []
         dialog = AddingDialog(size, self.headers[1:], values)
@@ -187,8 +205,10 @@ class TablesViewer(QMainWindow):
             values = [v for v in values if v]
 
             for item_id in selection_ids:
-                self._edit_item(self.active_table, values, self.headers[1:], item_id)
-            self.refresh()
+                self._edit_item(
+                    self.active_table, values, self.headers[1:], item_id
+                )
+            self._refresh()
 
     def _edit_item(self, table_name, data, headers, selection_id):
         update_data = []
@@ -199,9 +219,12 @@ class TablesViewer(QMainWindow):
             update_data.append("{} = %s".format(header))
 
         update_data = ", ".join(update_data)
+        query = "UPDATE {} SET {} WHERE id = {}".format(
+            table_name, update_data, selection_id
+        )
 
         self.db.connect()
-        self.db.execute("UPDATE {} SET {} WHERE id = {}".format(table_name, update_data, selection_id), data)
+        self.db.execute(query, data)
         self.db.commit()
         self.db.disconnect()
 
@@ -214,26 +237,34 @@ class TablesViewer(QMainWindow):
         return ids
 
     def remove(self):
+        """Remove item with confirmation."""
         selection_ids = self._get_selection_ids()
         if not selection_ids:
-            return # TODO: Add warning about empty selection
+            return
 
-        button = QMessageBox.question(self, "Deletion", "Do you want to delete a record?")
+        button = QMessageBox.question(
+            self, "Deletion", "Do you want to delete a record?"
+        )
 
         if button == QMessageBox.Yes:
             for item_id in selection_ids:
                 self._remove_item(self.active_table, item_id)
-            self.refresh()
+            self._refresh()
 
     def _remove_item(self, table_name, item_id):
+        query = "DELETE FROM {} WHERE id = {}".format(table_name, item_id)
+
         self.db.connect()
-        self.db.execute("DELETE FROM {} WHERE id = {}".format(table_name, item_id))
+        self.db.execute(query)
         self.db.commit()
         self.db.disconnect()
 
     def save_active_table(self):
+        """Save currently opened table to file with choosing via gui."""
         dialog = QFileDialog()
-        file_name, status = dialog.getSaveFileName(self, "Save File", ".", "*.txt")
+        file_name, status = dialog.getSaveFileName(
+            self, "Save File", ".", "*.txt"
+        )
 
         try:
             self._save_table(file_name, self.active_table)
@@ -243,13 +274,18 @@ class TablesViewer(QMainWindow):
             QMessageBox.information(self, "Succes", "Table succesfully saved")
 
     def save_all_tables(self):
+        """Save all accessable tables to folder with choosing via gui."""
         dialog = QFileDialog()
-        folder_name, status = dialog.getSaveFileName(self, "Save Folder", ".", "")
+        folder_name, status = dialog.getSaveFileName(
+            self, "Save Folder", ".", ""
+        )
 
         try:
             os.mkdir(folder_name)
             for table in self.TABLES:
-                self._save_table(os.path.join(folder_name, table + ".txt"), table)
+                self._save_table(
+                    os.path.join(folder_name, table + ".txt"), table
+                )
         except Exception:
             pass
         else:

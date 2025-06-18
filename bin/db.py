@@ -1,70 +1,59 @@
-"""Provide class for db interaction."""
 import psycopg2
 
+from bin.exceptions import *
 
-class DBManager:
-    """Provide helper interface to postgres db."""
+
+class DB:
+
+    # TODO: Change name to DBManager or DBHelper as more suitable
 
     def __init__(self, db_name, user):
-        """Initialize data for login into db."""
         self.name = db_name
         self.user = user
 
         self.connected = False
 
-    def __del__(self):
-        """Handle connection closing."""
-        self.disconnect()
-
     def connect(self):
-        """Establish and save connection to db."""
-        if self.connected:
-            return
-
         self._connection = psycopg2.connect(dbname=self.name, user=self.user)
         self._cursor = self._connection.cursor()
 
         self.connected = True
 
     def disconnect(self):
-        """Close connection to db."""
-        if not self.connected:
-            return
-
         self._cursor.close()
         self._connection.close()
 
         self.connected = False
 
+    def insert(self, item):
+        placeholders = ["%s"] * (len(item.record_attributes))
+        query = "INSERT INTO {} VALUES ({})".format(
+            item.table_name, *placeholders)
+
+        self.execute(query, item.record_attributes)
+
+    def upsert(self, table):
+        raise NotImplemented
+
     def commit(self):
-        """Save last queries results."""
         if not self.connected:
             return
 
         self._connection.commit()
 
-    def execute_and_return(self, query, args=None):
-        """Execute query and return fetched result."""
-        self.connect()
+    def delete(self, index, table_name):
+        raise NotImplemented
 
-        self.execute(query, args)
+    def execute(self, query, *args, **kwargs):
+        if not self.connected:
+            raise NotConnectedException
 
-        result = self.fetch()
-
-        self.disconnect()
-
-        return result
-
-    def execute(self, query, args=None):
-        """Execute query."""
-        self._cursor.execute(query, args)
+        self._cursor.execute(query, *args, **kwargs)
 
     def fetch(self):
-        """Return result of fetch operation on db."""
         return self._cursor.fetchall()
 
     def create_table(self, table_name, columns=[], types=[], temporary=False):
-        """Construct table from args."""
         attribute_lines = []
         for column, cell_type in zip(columns, types):
             attribute_lines.append("{} {}".format(column, cell_type))
@@ -75,8 +64,6 @@ class DBManager:
         if temporary:
             temporary_text = "TEMPORARY"
 
-        query = "CREATE {} TABLE {} ({});".format(
-            temporary_text, table_name, attributes
-        )
+        query = "CREATE {} TABLE {} ({});".format(temporary_text, table_name, attributes)
 
         self.execute(query)
